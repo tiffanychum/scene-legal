@@ -1,27 +1,40 @@
 // Auto-scrolling screenshot strip: drifts left on a loop, pauses the moment
-// someone touches/drags/hovers it, and resumes a couple of seconds after
-// they let go. The track's image set is duplicated in the HTML so the loop
-// point is seamless.
+// someone drags/touches it, and resumes a couple of seconds after they let
+// go. Driven by `transform: translateX(...)` (not `scrollLeft`), because
+// scrollLeft-driven animation is notoriously unreliable on iOS Safari —
+// transforms are GPU-composited and stay smooth there. The track's image
+// set is duplicated in the HTML so the loop point is seamless.
 (function () {
-  var track = document.getElementById("shots");
-  if (!track) return;
+  var viewport = document.getElementById("shots");
+  var track = document.getElementById("shotsTrack");
+  if (!viewport || !track) return;
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) return;
 
-  var SPEED = 0.55; // px per frame (~33px/s at 60fps)
-  var RESUME_DELAY = 2200; // ms of no interaction before auto-scroll resumes
+  var SPEED = 34; // px per second of idle drift
+  var RESUME_DELAY = 2200; // ms of no interaction before the drift resumes
+
+  var offset = 0; // current position; track sits at translateX(-offset)
+  var half = 0; // width of one full (non-duplicated) image set
+  var dragging = false;
+  var pointerId = null;
+  var dragStartX = 0;
+  var dragStartOffset = 0;
   var paused = false;
   var resumeTimer = null;
-  var halfWidth = 0;
+  var lastTs = null;
 
   function measure() {
-    halfWidth = track.scrollWidth / 2;
+    half = track.scrollWidth / 2;
   }
 
-  function pause() {
-    paused = true;
-    if (resumeTimer) clearTimeout(resumeTimer);
+  function apply() {
+    track.style.transform = "translateX(" + -offset + "px)";
+  }
+
+  function wrap() {
+    if (half <= 0) return;
+    offset = ((offset % half) + half) % half;
   }
 
   function scheduleResume() {
@@ -31,45 +44,101 @@
     }, RESUME_DELAY);
   }
 
-  function tick() {
-    if (!paused && halfWidth > 0) {
-      track.scrollLeft += SPEED;
-      if (track.scrollLeft >= halfWidth) {
-        track.scrollLeft -= halfWidth;
-      }
-    }
-    requestAnimationFrame(tick);
+  function beginDrag(clientX) {
+    dragging = true;
+    paused = true;
+    if (resumeTimer) clearTimeout(resumeTimer);
+    dragStartX = clientX;
+    dragStartOffset = offset;
   }
 
-  ["pointerdown", "touchstart", "wheel"].forEach(function (evt) {
-    track.addEventListener(evt, pause, { passive: true });
+  function moveDrag(clientX) {
+    if (!dragging) return;
+    offset = dragStartOffset - (clientX - dragStartX);
+    wrap();
+    apply();
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    scheduleResume();
+  }
+
+  viewport.addEventListener("pointerdown", function (e) {
+    pointerId = e.pointerId;
+    beginDrag(e.clientX);
+    if (viewport.setPointerCapture) {
+      try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
+    }
   });
-  ["pointerup", "pointercancel", "touchend", "touchcancel", "mouseleave"].forEach(function (evt) {
-    track.addEventListener(evt, scheduleResume, { passive: true });
+  viewport.addEventListener("pointermove", function (e) {
+    if (dragging && e.pointerId === pointerId) moveDrag(e.clientX);
   });
-  track.addEventListener("mouseenter", pause);
+  ["pointerup", "pointercancel"].forEach(function (evt) {
+    viewport.addEventListener(evt, endDrag);
+  });
+  viewport.addEventListener("mouseenter", function () {
+    paused = true;
+    if (resumeTimer) clearTimeout(resumeTimer);
+  });
+  viewport.addEventListener("mouseleave", function () {
+    if (dragging) endDrag();
+    else scheduleResume();
+  });
+
+  viewport.addEventListener("touchstart", function (e) {
+    beginDrag(e.touches[0].clientX);
+  }, { passive: true });
+  viewport.addEventListener("touchmove", function (e) {
+    moveDrag(e.touches[0].clientX);
+  }, { passive: true });
+  viewport.addEventListener("touchend", endDrag, { passive: true });
+  viewport.addEventListener("touchcancel", endDrag, { passive: true });
+
+  viewport.addEventListener("wheel", function () {
+    paused = true;
+    scheduleResume();
+  }, { passive: true });
 
   window.addEventListener("resize", measure);
 
-  var images = track.querySelectorAll("img");
-  var remaining = images.length;
-  if (remaining === 0) {
-    measure();
-  } else {
+  function whenImagesReady(cb) {
+    var images = track.querySelectorAll("img");
+    var remaining = images.length;
+    if (remaining === 0) { cb(); return; }
     images.forEach(function (img) {
       if (img.complete) {
         remaining--;
       } else {
         img.addEventListener("load", function () {
           remaining--;
-          if (remaining <= 0) measure();
+          if (remaining <= 0) cb();
+        });
+        img.addEventListener("error", function () {
+          remaining--;
+          if (remaining <= 0) cb();
         });
       }
     });
-    if (remaining <= 0) measure();
+    if (remaining <= 0) cb();
   }
-  // Fallback in case some 'complete' checks race the loop above.
+
+  whenImagesReady(measure);
   window.addEventListener("load", measure);
 
-  requestAnimationFrame(tick);
+  function frame(ts) {
+    if (!dragging && !paused && !reduceMotion && half > 0) {
+      if (lastTs != null) {
+        var dt = (ts - lastTs) / 1000;
+        offset += SPEED * dt;
+        wrap();
+        apply();
+      }
+    }
+    lastTs = ts;
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
 })();
