@@ -99,23 +99,21 @@
     <h3>Get Scène</h3>
     <p>Scène is launching soon on the App Store. Leave your email and we'll be the first to tell you the moment it's live — no spam, just the one email.</p>
     <!--
-      Waitlist form — currently wired to Buttondown (buttondown.email), a free
-      email-list tool built for exactly this: collect signups now, send one
-      email to everyone when the app launches. Replace "scene-app" below with
-      your own Buttondown username once you've created a free account.
+      Waitlist form — posts straight into your "Scene Email connection list"
+      Google Form (docs.google.com/forms/d/e/1FAIpQLScCqar2VrseY-j4_T1ekvhsZkD5rM3osnUpSo-bFkVRg7tbUw),
+      which collects every signup as a row in the linked Google Sheet. It
+      submits to a hidden iframe so visitors never leave this page.
     -->
     <form
       class="notify-form"
       id="notifyForm"
-      action="https://buttondown.email/api/emails/embed-subscribe/scene-app"
-      method="post"
-      target="popupwindow"
-      onsubmit="window.open('https://buttondown.email/scene-app', 'popupwindow', 'scrollbars=yes,width=800,height=600'); return true;"
+      action="https://docs.google.com/forms/d/e/1FAIpQLScCqar2VrseY-j4_T1ekvhsZkD5rM3osnUpSo-bFkVRg7tbUw/formResponse"
+      method="POST"
+      target="notify-hidden-frame"
     >
-      <input type="hidden" name="embed" value="1"/>
       <input
         type="email"
-        name="email"
+        name="entry.1094354254"
         id="notifyEmail"
         placeholder="you@example.com"
         aria-label="Email address"
@@ -123,7 +121,8 @@
       />
       <button type="submit" class="btn">Notify me at launch</button>
     </form>
-    <p class="form-note">We'll only email you when Scène is live. Unsubscribe anytime.</p>
+    <iframe name="notify-hidden-frame" id="notifyHiddenFrame" title="" style="display:none" aria-hidden="true"></iframe>
+    <p class="form-note" id="notifyNote">We'll only email you when Scène is live. Unsubscribe anytime.</p>
   </div>
 
   <div class="card">
@@ -138,5 +137,6 @@
 </div>
 <script src="cosmic-bg.js"></script>
 <script src="marquee.js"></script>
+<script src="notify-form.js"></script>
 </body>
 </html>
