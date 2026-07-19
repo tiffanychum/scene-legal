@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+<div id="cosmic-bg" aria-hidden="true"></div>
 <div class="wrap">
   <header class="site">
     <a class="brand" href="index.html">SCÈNE</a>
@@ -30,7 +31,7 @@
     <p class="lede">Scène is a cinematic mood diary. Check in on how you feel, and it comes back to you as a scene — a quote, a song, and an image made just for today.</p>
     <div class="hero-links">
       <a class="btn" href="#coming-soon">Coming soon on the App Store</a>
-      <a class="btn secondary" href="mailto:sprout.app.support@gmail.com">Get notified</a>
+      <a class="btn secondary" href="#coming-soon">Get notified</a>
     </div>
   </section>
 
@@ -96,10 +97,33 @@
 
   <div class="card" id="coming-soon">
     <h3>Get Scène</h3>
-    <p>Scène is launching soon on the App Store. Leave your email and we'll let you know the moment it's live.</p>
-    <div class="hero-links">
-      <a class="btn" href="mailto:sprout.app.support@gmail.com?subject=Notify%20me%20when%20Sc%C3%A8ne%20launches">Notify me at launch</a>
-    </div>
+    <p>Scène is launching soon on the App Store. Leave your email and we'll be the first to tell you the moment it's live — no spam, just the one email.</p>
+    <!--
+      Waitlist form — currently wired to Buttondown (buttondown.email), a free
+      email-list tool built for exactly this: collect signups now, send one
+      email to everyone when the app launches. Replace "scene-app" below with
+      your own Buttondown username once you've created a free account.
+    -->
+    <form
+      class="notify-form"
+      id="notifyForm"
+      action="https://buttondown.email/api/emails/embed-subscribe/scene-app"
+      method="post"
+      target="popupwindow"
+      onsubmit="window.open('https://buttondown.email/scene-app', 'popupwindow', 'scrollbars=yes,width=800,height=600'); return true;"
+    >
+      <input type="hidden" name="embed" value="1"/>
+      <input
+        type="email"
+        name="email"
+        id="notifyEmail"
+        placeholder="you@example.com"
+        aria-label="Email address"
+        required
+      />
+      <button type="submit" class="btn">Notify me at launch</button>
+    </form>
+    <p class="form-note">We'll only email you when Scène is live. Unsubscribe anytime.</p>
   </div>
 
   <div class="card">
@@ -112,6 +136,7 @@
     <p>© 2026 CHUM Man Lee. All rights reserved.</p>
   </footer>
 </div>
+<script src="cosmic-bg.js"></script>
 <script src="marquee.js"></script>
 </body>
 </html>
